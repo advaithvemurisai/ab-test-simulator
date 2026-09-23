@@ -19,6 +19,7 @@ def decide(
     funded_lift: float,
     funded_p_value: float,
     revenue_ci_low: float,
+    revenue_ci_high: float,
     fraud_relative_lift: float,
     fraud_p_value: float,
     fraud_tolerance: float = 0.50,
@@ -30,11 +31,11 @@ def decide(
         return Verdict("DON'T TRUST", "invalid", ("SRM (sample ratio mismatch): fix the traffic split before interpreting outcomes.",))
     if funded_p_value < 0.05 and funded_lift < 0:
         return Verdict("DON'T SHIP", "danger", ("The funded-account rate is significantly lower in treatment.",))
-    if revenue_ci_low < 0:
-        return Verdict("DON'T SHIP", "danger", ("The 95% confidence interval for net revenue includes a meaningful downside.",))
+    if revenue_ci_high < 0:
+        return Verdict("DON'T SHIP", "danger", ("The 95% confidence interval for net revenue is entirely below zero.",))
     if fraud_p_value < 0.05 and fraud_relative_lift > fraud_tolerance:
         return Verdict("DON'T SHIP", "danger", ("The fraud guardrail is significantly worse than the preset tolerance.",))
-    if funded_p_value < 0.05 and funded_lift > 0 and revenue_ci_low >= 0 and not (fraud_p_value < 0.05 and fraud_relative_lift > fraud_tolerance):
+    if funded_p_value < 0.05 and funded_lift > 0 and not (fraud_p_value < 0.05 and fraud_relative_lift > fraud_tolerance):
         return Verdict("SHIP", "success", ("The primary metric is significantly positive.", "Value is not below the tolerated loss floor.", "The fraud guardrail is not breached."))
     missing_power = max(0.0, 0.80 - current_power)
     additional_days = round(days_elapsed * missing_power / max(current_power, 0.05)) if missing_power else 0

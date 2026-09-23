@@ -45,6 +45,25 @@ def simulate_power(n_per_arm: int, baseline_cr: float, relative_lift: float, sim
     return float(significant / simulations)
 
 
+def observed_power(data: pd.DataFrame, alpha: float = 0.05) -> float:
+    """Estimate achieved power from the observed effect and arm sizes."""
+    control = data[data.group == "control"]["converted"]
+    treatment = data[data.group == "treatment"]["converted"]
+    control_rate = control.mean()
+    treatment_rate = treatment.mean()
+    if control_rate == treatment_rate:
+        return 0.0
+    effect = proportion_effectsize(treatment_rate, control_rate)
+    return float(
+        NormalIndPower().power(
+            abs(effect),
+            nobs1=len(treatment),
+            alpha=alpha,
+            ratio=len(control) / len(treatment),
+        )
+    )
+
+
 def power_curve(sample_sizes: list[int] | np.ndarray, baseline_cr: float, relative_lift: float, simulations: int = 250, seed: int = 42) -> pd.DataFrame:
     """Return analytic and simulated power across sample sizes."""
     rows = []

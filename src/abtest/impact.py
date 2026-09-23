@@ -9,6 +9,7 @@ def project_yearly_impact(
     data: pd.DataFrame,
     monthly_visitors: int = 500_000,
     revenue_ci: tuple[float, float] | None = None,
+    funded_ci: tuple[float, float] | None = None,
     fraud_tolerance: float = 0.50,
 ) -> dict[str, float | tuple[float, float]]:
     """Project incremental annual outcomes at a stated monthly traffic level."""
@@ -31,7 +32,10 @@ def project_yearly_impact(
     return {
         "monthly_visitors": float(monthly_visitors),
         "funded_accounts_delta": float(funded_delta),
-        "funded_accounts_range": (float(funded_delta), float(funded_delta)),
+        "funded_accounts_range": (
+            float((funded_ci[0] if funded_ci else treatment_rate - control_rate) * annual_visitors),
+            float((funded_ci[1] if funded_ci else treatment_rate - control_rate) * annual_visitors),
+        ),
         "revenue_delta": float(revenue_delta),
         "revenue_range": revenue_range,
         "fraud_cases_delta": float(fraud_delta),

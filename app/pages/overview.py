@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parents[2] / "src"))
 
 from abtest.decision import decide
 from abtest.impact import project_yearly_impact
+from abtest.power import observed_power
 from app.ui.context import get_context
 from app.ui.metrics import summarize
 from app.ui.theme import explain, inject_theme
@@ -29,12 +30,20 @@ verdict = decide(
     funded_lift=funded["relative_lift"],
     funded_p_value=funded["p_value"],
     revenue_ci_low=revenue_ci["ci_low"],
+    revenue_ci_high=revenue_ci["ci_high"],
     fraud_relative_lift=fraud["relative_lift"],
     fraud_p_value=fraud["p_value"],
-    current_power=0.80 if funded["p_value"] < .05 else .45,
+    current_power=observed_power(data),
     days_elapsed=scenario.n_days,
 )
-impact = project_yearly_impact(data, revenue_ci=(revenue_ci["ci_low"], revenue_ci["ci_high"]))
+impact = project_yearly_impact(
+    data,
+    revenue_ci=(revenue_ci["ci_low"], revenue_ci["ci_high"]),
+    funded_ci=(
+        funded["control_rate"] * results["funded_ci"][0],
+        funded["control_rate"] * results["funded_ci"][1],
+    ),
+)
 
 st.markdown('<div class="hero-copy"><div class="eyebrow">Experiment decision workspace</div><h1>LiftLab</h1><p>Should a neobank ship instant bank linking, or keep testing? LiftLab turns one experiment into a decision you can defend.</p></div>', unsafe_allow_html=True)
 st.caption(f"Scenario: **{scenario.name}** · {scenario.description} {scenario.lesson}")
@@ -45,9 +54,9 @@ if verdict.additional_days:
 
 st.subheader("Scorecard")
 rows = [
-    {"Metric": "Funded-account rate", "Role": "Primary", "Control": f"{funded['control_rate']:.2%}", "Treatment": f"{funded['treatment_rate']:.2%}", "Lift (95% CI)": f"{funded['relative_lift']:.1%}", "p-value": f"{funded['p_value']:.3f}", "Status": "Positive" if funded["p_value"] < .05 and funded["relative_lift"] > 0 else "Unclear"},
+    {"Metric": "Funded-account rate", "Role": "Primary", "Control": f"{funded['control_rate']:.2%}", "Treatment": f"{funded['treatment_rate']:.2%}", "Lift (95% CI)": f"{results['funded_ci'][0]:.1%} to {results['funded_ci'][1]:.1%}", "p-value": f"{funded['p_value']:.3f}", "Status": "Positive" if funded["p_value"] < .05 and funded["relative_lift"] > 0 else "Unclear"},
     {"Metric": "Net revenue / visitor", "Role": "Value", "Control": f"${revenue['control_mean']:.2f}", "Treatment": f"${revenue['treatment_mean']:.2f}", "Lift (95% CI)": f"${revenue_ci['ci_low']:.2f} to ${revenue_ci['ci_high']:.2f}", "p-value": f"{revenue['p_value']:.3f}", "Status": "Healthy" if revenue_ci["ci_low"] >= 0 else "Downside"},
-    {"Metric": "Fraud rate", "Role": "Guardrail", "Control": f"{fraud['control_rate'] * 10_000:.1f} / 10k", "Treatment": f"{fraud['treatment_rate'] * 10_000:.1f} / 10k", "Lift (95% CI)": f"{fraud['relative_lift']:.1%}", "p-value": f"{fraud['p_value']:.3f}", "Status": "Guardrail" if fraud["p_value"] < .05 and fraud["relative_lift"] > .5 else "Pass"},
+    {"Metric": "Fraud rate", "Role": "Guardrail", "Control": f"{fraud['control_rate'] * 10_000:.1f} / 10k", "Treatment": f"{fraud['treatment_rate'] * 10_000:.1f} / 10k", "Lift (95% CI)": f"{results['fraud_ci'][0]:.1%} to {results['fraud_ci'][1]:.1%}" if results['fraud_ci'][0] == results['fraud_ci'][0] else "n/a: zero control events", "p-value": f"{fraud['p_value']:.3f}", "Status": "Guardrail" if fraud["p_value"] < .05 and fraud["relative_lift"] > .5 else "Pass"},
     {"Metric": "Traffic split", "Role": "Validity", "Control": f"{srm['control_count']:,}", "Treatment": f"{srm['treatment_count']:,}", "Lift (95% CI)": "50 / 50 planned", "p-value": f"{srm['p_value']:.3f}", "Status": "Check" if srm["srm_detected"] else "Pass"},
 ]
 st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")

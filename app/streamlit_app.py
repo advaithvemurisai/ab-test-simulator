@@ -11,7 +11,10 @@ ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+from app.ui.context import render_sidebar
+
 st.set_page_config(page_title="LiftLab", page_icon=None, layout="wide", initial_sidebar_state="expanded")
+render_sidebar()
 
 pages = {
     "Decision": [
