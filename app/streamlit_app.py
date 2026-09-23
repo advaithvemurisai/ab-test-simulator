@@ -37,12 +37,12 @@ with st.sidebar:
     st.header("Experiment controls")
     n_users = st.number_input("Visitors randomized", min_value=200, max_value=100_000, value=20_000, step=500)
     baseline_cr = st.slider("Baseline funded-account rate", 0.005, 0.20, 0.04, 0.005, format="%.3f")
-    relative_lift = st.slider("True lift in funded accounts", -0.50, 1.00, 0.05, 0.01, format="%.0%")
-    fraud_uplift = st.slider("Fraud increase from instant linking", 0.0, 2.0, 0.30, 0.05, format="%.0%")
+    relative_lift = st.slider("True lift in funded accounts", -0.50, 1.00, 0.05, 0.01, format="%.0f%%")
+    fraud_uplift = st.slider("Fraud increase from instant linking", 0.0, 2.0, 0.30, 0.05, format="%.0f%%")
     n_days = st.slider("Experiment days", 3, 30, 14)
     seed = st.number_input("Seed", min_value=0, value=42, step=1)
     novelty = st.checkbox("Apply novelty decay")
-    srm_injection = st.slider("Treatment visitors lost (SRM injection)", 0.0, 0.30, 0.0, 0.01, format="%.0%")
+    srm_injection = st.slider("Treatment visitors lost (SRM injection)", 0.0, 0.30, 0.0, 0.01, format="%.0f%%")
 
 @st.cache_data
 def load_data(users: int, cr: float, lift: float, days: int, random_seed: int, novelty_effect: bool, srm: float, fraud: float):
