@@ -8,10 +8,10 @@ from scipy import stats
 from statsmodels.stats.proportion import proportions_ztest
 
 
-def conversion_ztest(data: pd.DataFrame) -> dict[str, float]:
-    """Compare treatment and control conversion rates with a two-sided z-test."""
-    control = data[data.group == "control"]["converted"]
-    treatment = data[data.group == "treatment"]["converted"]
+def conversion_ztest(data: pd.DataFrame, metric: str = "converted") -> dict[str, float]:
+    """Compare treatment and control rates of a binary metric with a two-sided z-test."""
+    control = data[data.group == "control"][metric]
+    treatment = data[data.group == "treatment"][metric]
     counts = np.array([treatment.sum(), control.sum()])
     sizes = np.array([len(treatment), len(control)])
     z_stat, p_value = proportions_ztest(counts, sizes)
