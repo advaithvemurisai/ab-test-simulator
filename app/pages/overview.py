@@ -58,7 +58,24 @@ impact = project_yearly_impact(
     ),
 )
 
-st.markdown('<div class="hero-copy"><div class="eyebrow">Experiment decision workspace</div><h1>LiftLab</h1><p>Should a neobank ship instant bank linking, or keep testing? LiftLab turns one experiment into a decision you can defend.</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-copy"><div class="eyebrow">Experiment decision workspace</div><h1>LiftLab</h1><p>A bank changed its sign-up page. Did the change actually help, or did it just get lucky? LiftLab runs the experiment and turns the result into a decision you can defend.</p></div>', unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="how">
+      <div class="step"><span class="num">1</span><b>Split visitors</b><span>Half see the old sign-up, which verifies a bank account with two tiny test deposits. Half see the new one: log into your bank and you're linked instantly.</span></div>
+      <div class="step"><span class="num">2</span><b>Measure</b><span>Count accounts opened, money earned, and fraud in each half.</span></div>
+      <div class="step"><span class="num">3</span><b>Decide</b><span>Check whether the gap is real or just luck, and whether anything else got worse.</span></div>
+    </div>
+    <div class="verdict-key">
+      <span><span class="chip ship">SHIP</span>the new page is better</span>
+      <span><span class="chip dont">DON'T SHIP</span>it's worse, or brings too much fraud</span>
+      <span><span class="chip keep">KEEP TESTING</span>not enough data to tell yet</span>
+      <span><span class="chip trust">DON'T TRUST</span>the experiment itself is broken</span>
+    </div>
+    <p class="catch"><b>The catch:</b> a change can look like a win (more sign-ups) and still be a bad idea (more fraud, or excitement that fades after launch week).</p>
+    """,
+    unsafe_allow_html=True,
+)
 st.caption(f"Scenario: **{scenario.name}** · {scenario.description} {scenario.lesson}")
 
 # "&#36;" stops Streamlit from reading dollar amounts as LaTeX math delimiters.

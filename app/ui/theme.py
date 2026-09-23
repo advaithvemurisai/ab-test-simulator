@@ -31,7 +31,16 @@ def inject_theme() -> None:
         .skill-strip { display:flex; flex-wrap:wrap; gap:.45rem; margin:1.1rem 0 1.5rem; }
         .skill { border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.82rem; padding:.35rem .7rem; }
         .definition { color:var(--muted); font-size:.9rem; line-height:1.5; }
-        @media (max-width: 640px) { .hero-copy h1 { font-size:2.2rem; } .hero-copy p { font-size:1rem; } }
+        .how { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.8rem; margin:.4rem 0 1rem; }
+        .step { border:1px solid var(--line); border-radius:8px; padding:.9rem 1rem; display:flex; flex-direction:column; gap:.3rem; }
+        .step b { color:var(--ink); }
+        .step span:last-child { color:var(--muted); font-size:.9rem; line-height:1.5; }
+        .step .num { width:1.6rem; height:1.6rem; border-radius:50%; background:var(--teal); color:#fff; font-size:.8rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+        .verdict-key { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; color:var(--muted); font-size:.88rem; margin:.2rem 0 .8rem; }
+        .chip { display:inline-block; border-radius:4px; padding:.1rem .45rem; margin-right:.4rem; font-size:.72rem; font-weight:700; letter-spacing:.04em; color:#fff; }
+        .chip.ship { background:#16845b; } .chip.dont { background:#c94b4b; } .chip.keep { background:#b7791f; } .chip.trust { background:#475467; }
+        .catch { color:var(--ink); font-size:.95rem; border-left:3px solid var(--line); padding-left:.8rem; margin:.4rem 0 1rem; }
+        @media (max-width: 640px) { .hero-copy h1 { font-size:2.2rem; } .hero-copy p { font-size:1rem; } .how { grid-template-columns:1fr; } }
         </style>
         """,
         unsafe_allow_html=True,
