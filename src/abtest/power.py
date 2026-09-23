@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 from statsmodels.stats.power import NormalIndPower
 from statsmodels.stats.proportion import proportion_effectsize
-
-from .data import generate_experiment
-from .frequentist import conversion_ztest
 
 
 def analytic_sample_size(baseline_cr: float, relative_lift: float, alpha: float = 0.05, power: float = 0.8) -> int:
@@ -36,32 +34,33 @@ def mde_curve(sample_sizes: list[int] | np.ndarray, baseline_cr: float, alpha: f
     return pd.DataFrame(rows)
 
 
-def simulate_power(n_per_arm: int, baseline_cr: float, relative_lift: float, simulations: int = 1_000, seed: int = 42) -> float:
-    """Estimate power by repeatedly generating and testing experiments."""
-    significant = 0
-    for iteration in range(simulations):
-        data = generate_experiment(n_users=n_per_arm * 2, baseline_cr=baseline_cr, relative_lift=relative_lift, seed=seed + iteration)
-        significant += conversion_ztest(data)["p_value"] < 0.05
-    return float(significant / simulations)
+def simulate_power(n_per_arm: int, baseline_cr: float, relative_lift: float, simulations: int = 1_000, seed: int = 42, alpha: float = 0.05) -> float:
+    """Estimate power by simulating many experiments and z-testing each one."""
+    # Visitors are independent, so each arm's funded count is exactly binomial;
+    # drawing counts directly matches generating every visitor, far faster.
+    rng = np.random.default_rng(seed)
+    control = rng.binomial(n_per_arm, baseline_cr, simulations)
+    treatment = rng.binomial(n_per_arm, min(baseline_cr * (1 + relative_lift), 1.0), simulations)
+    pooled = (control + treatment) / (2 * n_per_arm)
+    standard_error = np.sqrt(pooled * (1 - pooled) * 2 / n_per_arm)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        z_stat = np.nan_to_num((treatment - control) / n_per_arm / standard_error)
+    return float(np.mean(2 * norm.sf(np.abs(z_stat)) < alpha))
 
 
-def observed_power(data: pd.DataFrame, alpha: float = 0.05) -> float:
-    """Estimate achieved power from the observed effect and arm sizes."""
-    control = data[data.group == "control"]["converted"]
-    treatment = data[data.group == "treatment"]["converted"]
-    control_rate = control.mean()
-    treatment_rate = treatment.mean()
-    if control_rate == treatment_rate:
-        return 0.0
-    effect = proportion_effectsize(treatment_rate, control_rate)
-    return float(
-        NormalIndPower().power(
-            abs(effect),
-            nobs1=len(treatment),
-            alpha=alpha,
-            ratio=len(control) / len(treatment),
-        )
-    )
+def planned_power(n_per_arm: int, baseline_cr: float, mde: float, alpha: float = 0.05) -> float:
+    """Power to detect a pre-specified relative lift at the current sample size.
+
+    Deliberately not "observed power", which is just a restatement of the p-value.
+    """
+    effect = proportion_effectsize(baseline_cr * (1 + mde), baseline_cr)
+    return float(NormalIndPower().power(abs(effect), nobs1=max(n_per_arm, 1), alpha=alpha, ratio=1))
+
+
+def days_to_target_power(n_per_arm: int, visitors_per_day: float, baseline_cr: float, mde: float, power: float = 0.8) -> int:
+    """Additional days of traffic (split across both arms) needed to reach target power."""
+    shortfall = max(0, analytic_sample_size(baseline_cr, mde, power=power) - n_per_arm)
+    return int(np.ceil(2 * shortfall / visitors_per_day)) if shortfall else 0
 
 
 def power_curve(sample_sizes: list[int] | np.ndarray, baseline_cr: float, relative_lift: float, simulations: int = 250, seed: int = 42) -> pd.DataFrame:

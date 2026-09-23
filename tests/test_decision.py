@@ -25,10 +25,25 @@ def test_decision_prioritizes_validity_and_guardrails():
 
 def test_decision_can_ship_or_keep_testing():
     ship = decide(srm_p_value=.4, funded_lift=.1, funded_p_value=.01, revenue_ci_low=-1, revenue_ci_high=1, fraud_relative_lift=.1, fraud_p_value=.4)
-    keep_testing = decide(srm_p_value=.4, funded_lift=.02, funded_p_value=.4, revenue_ci_low=1, revenue_ci_high=2, fraud_relative_lift=.1, fraud_p_value=.4)
+    keep_testing = decide(srm_p_value=.4, funded_lift=.02, funded_p_value=.4, revenue_ci_low=1, revenue_ci_high=2, fraud_relative_lift=.1, fraud_p_value=.4, current_power=.2, additional_days=30)
     assert ship.label == "SHIP"
+    assert any("uncertain" in reason and "-$1.00" in reason for reason in ship.reasons)
     assert keep_testing.label == "KEEP TESTING"
-    assert keep_testing.additional_days > 0
+    assert keep_testing.additional_days == 30
+    assert "20%" in keep_testing.reasons[1]
+
+
+def test_fading_lift_is_not_shipped():
+    fading = decide(srm_p_value=.4, funded_lift=.12, funded_p_value=.01, revenue_ci_low=-1, revenue_ci_high=1, fraud_relative_lift=.1, fraud_p_value=.4, early_lift=.25, late_lift=.02, fade_p_value=.01)
+    durable = decide(srm_p_value=.4, funded_lift=.12, funded_p_value=.01, revenue_ci_low=-1, revenue_ci_high=1, fraud_relative_lift=.1, fraud_p_value=.4, early_lift=.13, late_lift=.11, fade_p_value=.4)
+    assert fading.label == "KEEP TESTING"
+    assert fading.additional_days >= 7
+    assert durable.label == "SHIP"
+
+
+def test_well_powered_null_is_not_keep_testing():
+    null = decide(srm_p_value=.4, funded_lift=.01, funded_p_value=.6, revenue_ci_low=-1, revenue_ci_high=1, fraud_relative_lift=0, fraud_p_value=.9, current_power=.95)
+    assert null.label == "DON'T SHIP"
 
 
 def test_revenue_only_rejects_when_the_full_interval_is_negative():

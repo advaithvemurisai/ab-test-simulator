@@ -26,6 +26,23 @@ def conversion_ztest(data: pd.DataFrame, metric: str = "converted") -> dict[str,
     }
 
 
+def lift_decline_test(early: pd.DataFrame, late: pd.DataFrame, metric: str = "converted") -> float:
+    """One-sided p-value that the relative lift is lower late than early.
+
+    Compares log relative risks between periods (a treatment-by-period interaction test).
+    """
+    log_rr, variance = [], []
+    for period in (early, late):
+        control = period.loc[period.group == "control", metric]
+        treatment = period.loc[period.group == "treatment", metric]
+        xc, nc, xt, nt = control.sum(), len(control), treatment.sum(), len(treatment)
+        if min(xc, xt) == 0:
+            return float("nan")
+        log_rr.append(np.log((xt / nt) / (xc / nc)))
+        variance.append(1 / xt - 1 / nt + 1 / xc - 1 / nc)
+    return float(stats.norm.sf((log_rr[0] - log_rr[1]) / np.sqrt(sum(variance))))
+
+
 def revenue_ttest(data: pd.DataFrame) -> dict[str, float]:
     """Compare per-user revenue using Welch's unequal-variance t-test."""
     control = data.loc[data.group == "control", "revenue"]

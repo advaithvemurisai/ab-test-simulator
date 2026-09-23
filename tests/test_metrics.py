@@ -1,7 +1,8 @@
+import numpy as np
 import pandas as pd
 from numpy import isnan
 
-from abtest.power import observed_power
+from abtest.power import analytic_sample_size, days_to_target_power, planned_power, simulate_power
 from app.ui.metrics import relative_lift_ci, summarize
 
 
@@ -32,18 +33,15 @@ def test_zero_control_events_are_explicitly_not_estimable():
     assert isnan(low) and isnan(high)
 
 
-def test_observed_power_is_calculated_from_the_observed_effect():
-    weak = pd.DataFrame(
-        {
-            "group": ["control"] * 100 + ["treatment"] * 100,
-            "converted": [True] * 10 + [False] * 90 + [True] * 11 + [False] * 89,
-        }
-    )
-    strong = pd.DataFrame(
-        {
-            "group": ["control"] * 1_000 + ["treatment"] * 1_000,
-            "converted": [True] * 40 + [False] * 960 + [True] * 80 + [False] * 920,
-        }
-    )
-    assert 0 <= observed_power(weak) <= 1
-    assert observed_power(strong) > observed_power(weak)
+def test_planned_power_and_days_use_the_planned_lift_not_the_observed_one():
+    required = analytic_sample_size(0.04, 0.05)
+    assert abs(planned_power(required, 0.04, 0.05) - 0.80) < 0.01
+    assert planned_power(2_500, 0.04, 0.05) < 0.2
+    assert days_to_target_power(required, 1_000, 0.04, 0.05) == 0
+    assert days_to_target_power(2_500, 1_000, 0.04, 0.05) == int(np.ceil(2 * (required - 2_500) / 1_000))
+
+
+def test_simulated_power_matches_theory():
+    required = analytic_sample_size(0.04, 0.05)
+    assert abs(simulate_power(required, 0.04, 0.05, simulations=4_000, seed=3) - 0.80) < 0.03
+    assert simulate_power(required, 0.04, 0.0, simulations=4_000, seed=3) < 0.07

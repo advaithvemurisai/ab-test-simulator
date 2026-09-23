@@ -11,11 +11,14 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parents[2] / "src"))
 
 from abtest.decision import decide
+from abtest.frequentist import conversion_ztest, lift_decline_test
 from abtest.impact import project_yearly_impact
-from abtest.power import observed_power
+from abtest.power import days_to_target_power, planned_power
 from app.ui.context import get_context
 from app.ui.metrics import summarize
 from app.ui.theme import explain, inject_theme
+
+PLANNED_MDE = 0.05
 
 inject_theme()
 data, scenario = get_context()
@@ -25,6 +28,12 @@ revenue = results["revenue"]
 revenue_ci = results["revenue_ci"]
 fraud = results["fraud"]
 srm = results["srm"]
+
+midpoint = max(1, scenario.n_days // 2)
+early_data, late_data = data[data.day <= midpoint], data[data.day > midpoint]
+early, late = conversion_ztest(early_data), conversion_ztest(late_data)
+n_per_arm = int(data.group.value_counts().min())
+baseline = funded["control_rate"] or scenario.baseline_cr
 verdict = decide(
     srm_p_value=srm["p_value"],
     funded_lift=funded["relative_lift"],
@@ -33,8 +42,12 @@ verdict = decide(
     revenue_ci_high=revenue_ci["ci_high"],
     fraud_relative_lift=fraud["relative_lift"],
     fraud_p_value=fraud["p_value"],
-    current_power=observed_power(data),
-    days_elapsed=scenario.n_days,
+    early_lift=early["relative_lift"],
+    late_lift=late["relative_lift"],
+    fade_p_value=lift_decline_test(early_data, late_data),
+    planned_mde=PLANNED_MDE,
+    current_power=planned_power(n_per_arm, baseline, PLANNED_MDE),
+    additional_days=days_to_target_power(n_per_arm, len(data) / scenario.n_days, baseline, PLANNED_MDE),
 )
 impact = project_yearly_impact(
     data,
@@ -48,9 +61,11 @@ impact = project_yearly_impact(
 st.markdown('<div class="hero-copy"><div class="eyebrow">Experiment decision workspace</div><h1>LiftLab</h1><p>Should a neobank ship instant bank linking, or keep testing? LiftLab turns one experiment into a decision you can defend.</p></div>', unsafe_allow_html=True)
 st.caption(f"Scenario: **{scenario.name}** · {scenario.description} {scenario.lesson}")
 
-st.markdown(f'<div class="verdict"><div class="eyebrow">Recommendation</div><h2>{verdict.label}</h2>{"".join(f"<p>• {reason}</p>" for reason in verdict.reasons)}</div>', unsafe_allow_html=True)
+# "&#36;" stops Streamlit from reading dollar amounts as LaTeX math delimiters.
+reasons_html = "".join(f"<p>• {reason.replace('$', '&#36;')}</p>" for reason in verdict.reasons)
+st.markdown(f'<div class="verdict"><div class="eyebrow">Recommendation</div><h2>{verdict.label}</h2>{reasons_html}</div>', unsafe_allow_html=True)
 if verdict.additional_days:
-    st.info(f"Planning signal: collect roughly **{verdict.additional_days} more days** before revisiting the decision.")
+    st.info(f"Planning signal: at current traffic, collect roughly **{verdict.additional_days:,} more days** before revisiting the decision.")
 
 st.subheader("Scorecard")
 rows = [
