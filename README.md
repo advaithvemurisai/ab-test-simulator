@@ -1,8 +1,10 @@
-# A/B Test Simulator
+# LiftLab
 
-A hands-on simulator for understanding power, skewed revenue, guardrail metrics, sequential testing, SRM, and Bayesian decisions in online experiments.
+A product-style experimentation workspace for deciding whether a neobank should ship instant bank linking. LiftLab pairs a funded-account lift with net revenue, fraud guardrails, traffic validity, and the statistical evidence behind each recommendation.
 
 **Live app:** deploy this repository to [Streamlit Community Cloud](https://share.streamlit.io/) and set the entrypoint to `app/streamlit_app.py`.
+
+The default **Growth vs. fraud** scenario is designed for a 30-second portfolio read: a promising conversion result can still fail when the fraud guardrail moves in the wrong direction. The sidebar also includes clear winner, underpowered, broken rollout, and novelty-effect scenarios.
 
 ## Scenario
 
@@ -43,4 +45,8 @@ pytest
 ruff check .
 ```
 
-The notebook at `notebooks/walkthrough.ipynb` mirrors the app's main analysis flow. For a polished project portfolio, capture screenshots or GIFs of the power curve, segment lift table, and especially the peeking chart after launching the app.
+The app is organized around product questions: **Overview**, **Customer journey**, **Segments**, **Test planning**, **Pitfalls lab**, **Bayesian view**, and **Case study**. The notebook at `notebooks/walkthrough.ipynb` remains a compact methods walkthrough.
+
+## Methods
+
+The synthetic generator models randomization, device/channel/customer segments, weekday traffic, funnel progression, lognormal deposits, fraud losses, novelty decay, and SRM injection. The analysis layer includes two-proportion z-tests, Welch's t-test, bootstrap intervals, chi-square SRM checks, Benjamini-Hochberg adjustment, analytic and simulated power, sequential A/A tests, and a Beta-Binomial posterior.
